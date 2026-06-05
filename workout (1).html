@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Gym Split</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0c0d;
+    --surface: #161618;
+    --surface2: #1f1f22;
+    --surface3: #2a2a2e;
+    --accent: #e8ff47;
+    --push: #ff6b35;
+    --pull: #38bdf8;
+    --legs: #a78bfa;
+    --text: #ececea;
+    --muted: #6b6b70;
+    --border: #2a2a2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding-bottom: 60px; }
+
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 18px 12px; position: sticky; top: 0; z-index: 200;
+  }
+  header h1 { font-family: 'Bebas Neue', cursive; font-size: 1.85rem; letter-spacing: 2px; color: var(--accent); line-height: 1; }
+  header p { font-size: 0.65rem; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px; }
+
+  /* SEARCH */
+  .search-wrap { padding: 12px 14px 6px; }
+  .search-wrap input {
+    width: 100%; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; padding: 10px 14px; outline: none; transition: border-color 0.2s;
+  }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-wrap input:focus { border-color: var(--accent); }
+
+  /* FILTER ROWS */
+  .filter-group { padding: 8px 14px 2px; }
+  .filter-group-label { font-size: 0.58rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .filter-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  .ftab {
+    flex-shrink: 0; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.8px;
+    text-transform: uppercase; padding: 6px 12px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: transparent; color: var(--muted);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .ftab:hover { color: var(--text); border-color: var(--surface3); }
+  .ftab.on { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,0.07); }
+  .ftab.on-push { border-color: var(--push); color: var(--push); background: rgba(255,107,53,0.07); }
+  .ftab.on-pull { border-color: var(--pull); color: var(--pull); background: rgba(56,189,248,0.07); }
+  .ftab.on-legs { border-color: var(--legs); color: var(--legs); background: rgba(167,139,250,0.07); }
+
+  .divider { height: 1px; background: var(--border); margin: 8px 14px 0; }
+
+  /* ACTIVE FILTER PILLS */
+  .active-filters { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 14px 2px; min-height: 0; }
+  .af-pill {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.5px;
+    padding: 4px 10px; border-radius: 20px; background: rgba(232,255,71,0.1);
+    color: var(--accent); border: 1px solid rgba(232,255,71,0.25);
+    display: flex; align-items: center; gap: 5px; cursor: pointer;
+  }
+  .af-pill .pill-x { opacity: 0.6; font-size: 0.75rem; }
+
+  /* SECTION LABELS */
+  .section-label {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); padding: 16px 14px 7px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* CARDS */
+  .cards { padding: 0 10px; display: flex; flex-direction: column; gap: 8px; }
+
+  .ex-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; transition: border-color 0.2s;
+  }
+  .ex-card[data-type="push"] { border-left: 3px solid var(--push); }
+  .ex-card[data-type="pull"] { border-left: 3px solid var(--pull); }
+  .ex-card[data-type="legs"] { border-left: 3px solid var(--legs); }
+  .ex-card.hidden { display: none; }
+  .ex-card.done { opacity: 0.38; }
+  .ex-card.done .ex-name { text-decoration: line-through; }
+
+  .ex-main { display: flex; align-items: center; gap: 11px; padding: 11px 13px; cursor: pointer; }
+
+  .ex-thumb {
+    width: 48px; height: 48px; border-radius: 10px; background: var(--surface2);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+  }
+
+  .ex-info { flex: 1; min-width: 0; }
+  .ex-name { font-size: 0.9rem; font-weight: 600; color: var(--text); line-height: 1.25; }
+  .ex-equip { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+
+  /* SUB-MUSCLE TAGS */
+  .ex-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .ex-tag {
+    font-size: 0.58rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 5px;
+  }
+  .tag-primary { background: rgba(232,255,71,0.12); color: var(--accent); }
+  .tag-secondary { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+  .ex-chevron { color: var(--muted); font-size: 0.9rem; transition: transform 0.25s; flex-shrink: 0; }
+  .ex-card.open .ex-chevron { transform: rotate(90deg); }
+
+  /* DETAIL */
+  .ex-detail { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; background: var(--surface2); }
+  .ex-card.open .ex-detail { max-height: 700px; }
+  .ex-detail-inner { padding: 13px 15px 15px; border-top: 1px solid var(--border); }
+
+  .detail-gif {
+    width: 100%; border-radius: 10px; background: var(--surface3);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px; overflow: hidden; min-height: 72px;
+  }
+  .detail-gif img { width: 100%; border-radius: 10px; display: block; }
+  .gif-placeholder { padding: 16px; text-align: center; color: var(--muted); font-size: 0.73rem; }
+  .gif-placeholder .big { font-size: 1.8rem; display: block; margin-bottom: 5px; }
+
+  .gif-link {
+    display: block; text-align: center; font-size: 0.7rem; color: var(--accent);
+    text-decoration: none; margin-bottom: 11px; padding: 7px 12px;
+    background: rgba(232,255,71,0.06); border-radius: 8px;
+    border: 1px solid rgba(232,255,71,0.13); letter-spacing: 0.3px;
+  }
+
+  .detail-sets { display: flex; gap: 7px; margin-bottom: 11px; }
+  .detail-pill { flex: 1; background: var(--surface3); border-radius: 8px; padding: 7px 6px; text-align: center; }
+  .detail-pill .dpnum { font-family: 'Bebas Neue', cursive; font-size: 1.35rem; color: var(--accent); letter-spacing: 1px; line-height: 1; }
+  .detail-pill .dplbl { font-size: 0.57rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* MUSCLE BREAKDOWN IN DETAIL */
+  .muscle-breakdown { margin-bottom: 11px; }
+  .mb-title { font-size: 0.6rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .mb-bars { display: flex; flex-direction: column; gap: 5px; }
+  .mb-row { display: flex; align-items: center; gap: 8px; }
+  .mb-label { font-size: 0.65rem; color: var(--text); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mb-bar-bg { flex: 1; background: var(--surface3); border-radius: 3px; height: 5px; }
+  .mb-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  .mb-pct { font-size: 0.6rem; color: var(--muted); width: 28px; text-align: right; }
+
+  .detail-tip { font-size: 0.76rem; color: var(--muted); line-height: 1.6; }
+  .detail-tip strong { color: var(--text); font-weight: 600; }
+
+  .done-row { display: flex; align-items: center; justify-content: space-between; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--border); }
+  .done-label { font-size: 0.7rem; color: var(--muted); }
+  .done-toggle { width: 40px; height: 22px; border-radius: 11px; background: var(--surface3); border: none; cursor: pointer; position: relative; transition: background 0.2s; }
+  .done-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: all 0.2s; }
+  .done-toggle.on { background: var(--accent); }
+  .done-toggle.on::after { left: 21px; background: #0c0c0d; }
+
+  .no-results { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 0.85rem; display: none; }
+  .no-results.show { display: block; }
+  .no-results .big { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MY GYM SPLIT</h1>
+  <p>Reps to failure · 2–3 sets · tap for demo</p>
+</header>
+
+<div class="search-wrap">
+  <input type="search" id="searchInput" placeholder="🔍  Search exercises…" oninput="applyFilters()">
+</div>
+
+<!-- FILTER GROUPS -->
+<div class="filter-group">
+  <div class="filter-group-label">Day Type</div>
+  <div class="filter-row" id="row-type"></div>
+</div>
+<div class="filter-group">
+  <div class="filter-group-label">Muscle Group</div>
+  <div class="filter-row" id="row-muscle"></div>
+</div>
+<div class="filter-group">
+  <div class="filter-group-label">Specific Target</div>
+  <div class="filter-row" id="row-sub"></div>
+</div>
+
+<div class="active-filters" id="activePills"></div>
+<div class="divider"></div>
+
+<div id="exerciseList"></div>
+<div class="no-results" id="noResults"><span class="big">🤷</span>No exercises found</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+// submuscles: array of { name, pct } — primary + secondary targets with % activation estimate
+
+const EXERCISES = [
+  // ══ CHEST ══
+  { name:"Smith Machine Bench Press", type:"push", muscle:"chest",
+    equip:"Smith machine · flat bench", emoji:"🏋️",
+    submuscles:[{n:"Sternal (mid) chest",p:70},{n:"Upper chest",p:20},{n:"Front delt",p:10}],
+    tags:["mid chest","sternal","full chest"],
+    tip:"<strong>Primary chest builder.</strong> Grip slightly wider than shoulder-width. Touch bar to lower chest, pause, press. Keep shoulder blades pinched throughout.",
+    gifUrl:"https://media.tenor.com/m_2EnEHMdaAAAAAM/smith-machine-bench-press.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=smith+machine+bench+press+form" },
+
+  { name:"Incline Dumbbell Press", type:"push", muscle:"chest",
+    equip:"Free weights · incline bench", emoji:"📐",
+    submuscles:[{n:"Upper chest (clavicular)",p:65},{n:"Sternal chest",p:20},{n:"Front delt",p:15}],
+    tags:["upper chest","clavicular","incline"],
+    tip:"<strong>Upper chest focus.</strong> Set bench ~30–45°. Elbows ~45° from body. Press up and slightly inward at top for max upper chest squeeze.",
+    gifUrl:"https://media.tenor.com/QFTMwBOt-v4AAAAM/incline-dumbbell-press.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=incline+dumbbell+press+form" },
+
+  { name:"Flat Dumbbell Press", type:"push", muscle:"chest",
+    equip:"Free weights · flat bench", emoji:"💪",
+    submuscles:[{n:"Sternal (mid) chest",p:65},{n:"Upper chest",p:20},{n:"Triceps",p:15}],
+    tags:["mid chest","sternal","full chest"],
+    tip:"<strong>Full chest mass.</strong> Greater ROM than barbell. Let elbows drop below bench level for a deep pec stretch at the bottom of each rep.",
+    gifUrl:"https://media.tenor.com/bQE-H9SdRNwAAAAM/dumbbell-bench-press.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=flat+dumbbell+bench+press+form" },
+
+  { name:"Smith Machine Decline Press", type:"push", muscle:"chest",
+    equip:"Smith machine · decline bench", emoji:"📉",
+    submuscles:[{n:"Lower chest (sternocostal)",p:70},{n:"Sternal chest",p:20},{n:"Triceps",p:10}],
+    tags:["lower chest","sternocostal","decline"],
+    tip:"<strong>Lower chest emphasis.</strong> Decline angle targets the sternocostal head. Great for rounding out the bottom of the pec after flat/incline work.",
+    gifUrl:"https://media.tenor.com/ZRLjqQJh5BkAAAAM/smith-machine-decline-bench-press.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=smith+machine+decline+bench+press+form" },
+
+  { name:"Cable Chest Fly (Mid)", type:"push", muscle:"chest",
+    equip:"Both cables · mid-height", emoji:"〰️",
+    submuscles:[{n:"Sternal (mid) chest",p:75},{n:"Upper chest",p:15},{n:"Front delt",p:10}],
+    tags:["mid chest","sternal","fly","isolation"],
+    tip:"<strong>Isolation pump.</strong> Slight forward lean, soft elbow bend. Cross hands at the end for max mid-chest squeeze. Cable keeps constant tension throughout the arc.",
+    gifUrl:"https://media.tenor.com/GDfKZCVCLo4AAAAM/cable-fly-cable-crossover.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+chest+fly+form" },
+
+  { name:"Cable High-to-Low Fly", type:"push", muscle:"chest",
+    equip:"Both cables · high pulley", emoji:"⬇️",
+    submuscles:[{n:"Lower chest (sternocostal)",p:70},{n:"Sternal chest",p:20},{n:"Front delt",p:10}],
+    tags:["lower chest","sternocostal","fly","decline"],
+    tip:"<strong>Lower chest target.</strong> Set cables high, pull down and together crossing at hip level. Squeeze hard at the bottom. Directly mimics a decline fly.",
+    gifUrl:"https://media.tenor.com/a6A2EFi2c5oAAAAM/cable-crossover-cable.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+high+to+low+fly+form" },
+
+  { name:"Cable Low-to-High Fly", type:"push", muscle:"chest",
+    equip:"Both cables · low pulley", emoji:"⬆️",
+    submuscles:[{n:"Upper chest (clavicular)",p:70},{n:"Sternal chest",p:20},{n:"Front delt",p:10}],
+    tags:["upper chest","clavicular","fly","incline"],
+    tip:"<strong>Upper chest cable fly.</strong> Set cables low, pull up and across to shoulder height. Mimics an incline fly angle — great for targeting the clavicular head with constant tension.",
+    gifUrl:"https://media.tenor.com/GDfKZCVCLo4AAAAM/cable-fly-cable-crossover.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+low+to+high+fly+upper+chest+form" },
+
+  { name:"Dumbbell Chest Fly", type:"push", muscle:"chest",
+    equip:"Free weights · flat bench", emoji:"🦅",
+    submuscles:[{n:"Sternal (mid) chest",p:70},{n:"Upper chest",p:20},{n:"Front delt",p:10}],
+    tags:["mid chest","sternal","fly","stretch"],
+    tip:"<strong>Deep stretch fly.</strong> Slight elbow bend throughout — think hugging a tree. Lower slowly for maximum pec stretch. The stretch is where the growth stimulus comes from.",
+    gifUrl:"https://media.tenor.com/vUqiS6HfVlUAAAAM/dumbbell-fly.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+chest+fly+form" },
+
+  // ══ SHOULDERS ══
+  { name:"Smith Machine Overhead Press", type:"push", muscle:"shoulders",
+    equip:"Smith machine · seated", emoji:"🏗️",
+    submuscles:[{n:"Front delt",p:55},{n:"Side delt",p:30},{n:"Triceps",p:15}],
+    tags:["front delt","side delt","overhead","compound"],
+    tip:"<strong>Compound shoulder builder.</strong> Press directly overhead, elbows slightly forward. Don't lock out fully at the top — keep tension on the delts throughout.",
+    gifUrl:"https://media.tenor.com/5LJLyQcLGjYAAAAM/shoulder-press-smith-machine.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=smith+machine+overhead+press+form" },
+
+  { name:"Dumbbell Shoulder Press", type:"push", muscle:"shoulders",
+    equip:"Free weights · seated or standing", emoji:"💥",
+    submuscles:[{n:"Front delt",p:50},{n:"Side delt",p:35},{n:"Triceps",p:15}],
+    tags:["front delt","side delt","overhead","compound"],
+    tip:"<strong>Full shoulder activation.</strong> More balance and stabilizer work than smith machine. Press up, palms facing forward or neutral (Arnold style) at the top.",
+    gifUrl:"https://media.tenor.com/4_FbU3rMLUkAAAAM/dumbbell-shoulder-press.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+shoulder+press+form" },
+
+  { name:"Cable Lateral Raise", type:"push", muscle:"shoulders",
+    equip:"Single cable · low pulley", emoji:"↔️",
+    submuscles:[{n:"Side delt (medial)",p:80},{n:"Front delt",p:10},{n:"Rear delt",p:10}],
+    tags:["side delt","medial delt","lateral","isolation"],
+    tip:"<strong>Side delt isolation.</strong> Stand sideways to cable, slight lean away. Raise arm to shoulder height — pinky slightly higher than thumb at the top. Do each side.",
+    gifUrl:"https://media.tenor.com/xZ-7OsmxbhYAAAAM/cable-lateral-raise.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+lateral+raise+form" },
+
+  { name:"Dumbbell Lateral Raise", type:"push", muscle:"shoulders",
+    equip:"Free weights", emoji:"🦾",
+    submuscles:[{n:"Side delt (medial)",p:80},{n:"Front delt",p:12},{n:"Rear delt",p:8}],
+    tags:["side delt","medial delt","lateral","isolation"],
+    tip:"<strong>Side delt classic.</strong> Slight forward lean and elbow bend. Raise to shoulder height. Slow 3-second negative — this builds more muscle than the lift itself.",
+    gifUrl:"https://media.tenor.com/I7YhqH2UqaUAAAAM/dumbbell-lateral-raise.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+lateral+raise+form" },
+
+  { name:"Dumbbell Front Raise", type:"push", muscle:"shoulders",
+    equip:"Free weights", emoji:"⬆️",
+    submuscles:[{n:"Front delt (anterior)",p:85},{n:"Side delt",p:10},{n:"Upper chest",p:5}],
+    tags:["front delt","anterior delt","isolation"],
+    tip:"<strong>Front delt isolation.</strong> Raise one or both arms to shoulder height, palms down. No swinging. Great superset partner with lateral raises to fully exhaust delts.",
+    gifUrl:"https://media.tenor.com/YScSMO5cJOUAAAAM/front-raise.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+front+raise+form" },
+
+  { name:"Cable Face Pull", type:"pull", muscle:"shoulders",
+    equip:"Cable machine · high pulley · rope", emoji:"🎯",
+    submuscles:[{n:"Rear delt (posterior)",p:60},{n:"Lower traps",p:20},{n:"Rotator cuff",p:20}],
+    tags:["rear delt","posterior delt","rotator cuff","health"],
+    tip:"<strong>Rear delt + shoulder health.</strong> Pull rope to forehead, elbows wide. Critical for balancing all the pressing you do — prevents shoulder impingement. Never skip.",
+    gifUrl:"https://media.tenor.com/v6tczxUUevsAAAAM/cable-face-pull.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+face+pull+form" },
+
+  { name:"Dumbbell Rear Delt Fly", type:"pull", muscle:"shoulders",
+    equip:"Free weights · bent over", emoji:"🔙",
+    submuscles:[{n:"Rear delt (posterior)",p:70},{n:"Mid traps",p:20},{n:"Rhomboids",p:10}],
+    tags:["rear delt","posterior delt","fly","isolation"],
+    tip:"<strong>Rear delt isolation.</strong> Hinge forward, slight elbow bend, raise elbows back and out. Pinch shoulder blades at top. Essential balance for heavy pressing days.",
+    gifUrl:"https://media.tenor.com/x-hFiJ6MCRYAAAAM/rear-delt-fly.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+rear+delt+fly+form" },
+
+  // ══ TRICEPS ══
+  { name:"Cable Tricep Pushdown", type:"push", muscle:"triceps",
+    equip:"Cable machine · high pulley · rope or bar", emoji:"⬇️",
+    submuscles:[{n:"Lateral head (outer)",p:60},{n:"Medial head",p:30},{n:"Long head",p:10}],
+    tags:["lateral head","outer tricep","horseshoe","isolation"],
+    tip:"<strong>Best lateral head isolation.</strong> Elbows pinned to sides. Fully extend and squeeze hard at the bottom. Use rope to flare hands out at the end for extra contraction.",
+    gifUrl:"https://media.tenor.com/7TwjhkRJqKAAAAAM/tricep-pushdown.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+tricep+pushdown+form" },
+
+  { name:"Overhead Cable Tricep Extension", type:"push", muscle:"triceps",
+    equip:"Cable machine · high pulley · rope", emoji:"🔝",
+    submuscles:[{n:"Long head (inner mass)",p:70},{n:"Lateral head",p:20},{n:"Medial head",p:10}],
+    tags:["long head","inner tricep","overhead","stretch"],
+    tip:"<strong>Long head focus.</strong> Face away from cable, rope overhead, fully extend arms. Long head is most activated when arms are raised — huge stretch at the bottom.",
+    gifUrl:"https://media.tenor.com/gGCHnCvNS8QAAAAM/overhead-cable-tricep-extension.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=overhead+cable+tricep+extension+form" },
+
+  { name:"Smith Machine Close-Grip Press", type:"push", muscle:"triceps",
+    equip:"Smith machine · flat bench", emoji:"🤜",
+    submuscles:[{n:"Medial head",p:45},{n:"Lateral head",p:35},{n:"Long head",p:20}],
+    tags:["medial head","all heads","compound","heavy"],
+    tip:"<strong>Heavy compound tricep work.</strong> Hands shoulder-width apart, elbows tucked close to body on the descent. Best for loading up the triceps with real weight.",
+    gifUrl:"https://media.tenor.com/NqJBm4cIj3AAAAAM/close-grip-bench-press.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=close+grip+bench+press+form" },
+
+  { name:"Dumbbell Skull Crusher", type:"push", muscle:"triceps",
+    equip:"Free weights · flat bench", emoji:"💀",
+    submuscles:[{n:"Long head (inner mass)",p:65},{n:"Lateral head",p:25},{n:"Medial head",p:10}],
+    tags:["long head","inner tricep","stretch","mass"],
+    tip:"<strong>Long head stretch overload.</strong> Lie flat, extend dumbbells up, lower by bending elbows toward ears. Keep elbows pointing straight at ceiling throughout.",
+    gifUrl:"https://media.tenor.com/eI1JMjDRgd4AAAAM/skull-crushers.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+skull+crusher+form" },
+
+  { name:"Reverse Cable Pushdown", type:"push", muscle:"triceps",
+    equip:"Cable machine · high pulley · bar", emoji:"🔄",
+    submuscles:[{n:"Medial head (underneath)",p:70},{n:"Lateral head",p:20},{n:"Brachialis",p:10}],
+    tags:["medial head","underneath","reverse grip"],
+    tip:"<strong>Medial head emphasis.</strong> Overhand/reverse grip targets the medial head — the underneath part of the tricep. Under-trained in most routines. Light weight, full extension.",
+    gifUrl:"https://media.tenor.com/7TwjhkRJqKAAAAAM/tricep-pushdown.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=reverse+grip+tricep+pushdown+form" },
+
+  // ══ BACK ══
+  { name:"Seated Cable Row", type:"pull", muscle:"back",
+    equip:"Cable machine · low pulley · V-bar", emoji:"🚣",
+    submuscles:[{n:"Mid back (rhomboids)",p:45},{n:"Lats",p:35},{n:"Lower traps",p:20}],
+    tags:["mid back","rhomboids","thickness","rowing"],
+    tip:"<strong>Mid-back thickness.</strong> Sit tall, pull to lower chest, squeeze shoulder blades hard at the end. Let arms stretch fully forward each rep for full lat stretch.",
+    gifUrl:"https://media.tenor.com/d5jEFj5EBswAAAAM/cable-row-seated-cable-row.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=seated+cable+row+form" },
+
+  { name:"Row Machine", type:"pull", muscle:"back",
+    equip:"Row machine", emoji:"🏋️",
+    submuscles:[{n:"Mid back (rhomboids)",p:45},{n:"Lats",p:35},{n:"Lower traps",p:20}],
+    tags:["mid back","rhomboids","thickness","compound"],
+    tip:"<strong>Full range compound pull.</strong> Stretch all the way forward at the start, drive elbows back past torso. Load up and go heavy — best machine for overall back thickness.",
+    gifUrl:"https://media.tenor.com/4C1gYqrNyAoAAAAM/chest-supported-row.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=machine+row+form" },
+
+  { name:"Straight-Arm Cable Pulldown", type:"pull", muscle:"back",
+    equip:"Cable machine · high pulley · bar", emoji:"📏",
+    submuscles:[{n:"Lats (width)",p:75},{n:"Lower lats",p:15},{n:"Teres major",p:10}],
+    tags:["lats","lat width","lower lats","isolation"],
+    tip:"<strong>Lat isolation.</strong> Arms almost straight, hinge slightly forward. Pull bar down to thighs using only lats. Massive stretch at top — feel the lat fully lengthen.",
+    gifUrl:"https://media.tenor.com/v4A0J-MLhKIAAAAM/straight-arm-pulldown.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form" },
+
+  { name:"Single-Arm Dumbbell Row", type:"pull", muscle:"back",
+    equip:"Free weights · bench for support", emoji:"💪",
+    submuscles:[{n:"Lats",p:40},{n:"Mid back (rhomboids)",p:40},{n:"Rear delt",p:20}],
+    tags:["lats","mid back","unilateral","thickness"],
+    tip:"<strong>Unilateral thickness.</strong> Brace on bench, pull elbow high and past torso. Let the weight drop for a full lat stretch. One side at a time fixes left/right imbalances.",
+    gifUrl:"https://media.tenor.com/sV0VR6wbGCEAAAAM/single-arm-row.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=single+arm+dumbbell+row+form" },
+
+  { name:"Cable Lat Pulldown", type:"pull", muscle:"back",
+    equip:"Cable machine · high pulley · wide bar", emoji:"🎿",
+    submuscles:[{n:"Lats (width)",p:65},{n:"Lower lats",p:20},{n:"Biceps",p:15}],
+    tags:["lats","lat width","lower lats","pull"],
+    tip:"<strong>Lat width builder.</strong> Lean back slightly, pull bar to upper chest. Initiate by pulling elbows DOWN and BACK — not just curling with arms. Squeeze lats at bottom.",
+    gifUrl:"https://media.tenor.com/2C1yLM0eTOIAAAAM/lat-pulldown.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+lat+pulldown+form" },
+
+  { name:"Cable Pullover", type:"pull", muscle:"back",
+    equip:"Cable machine · high pulley · rope", emoji:"🌀",
+    submuscles:[{n:"Lower lats",p:60},{n:"Lats (width)",p:25},{n:"Teres major",p:15}],
+    tags:["lower lats","lats","stretch","isolation"],
+    tip:"<strong>Lower lat activation.</strong> Face cable, arms overhead, pull rope down in an arc to hips. Keep arms mostly straight. Incredible lat stretch at the top of each rep.",
+    gifUrl:"https://media.tenor.com/g0DX0AJVuT0AAAAM/cable-pullover.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+pullover+form" },
+
+  { name:"Wide-Grip Cable Row", type:"pull", muscle:"back",
+    equip:"Cable machine · low pulley · wide bar", emoji:"🔀",
+    submuscles:[{n:"Upper mid back",p:50},{n:"Rear delt",p:30},{n:"Lats",p:20}],
+    tags:["upper mid back","rear delt","upper back","rowing"],
+    tip:"<strong>Upper back emphasis.</strong> Wide grip shifts focus from lats to upper mid back and rear delt. Pull to upper chest/clavicle area. Great for that 3D upper back look.",
+    gifUrl:"https://media.tenor.com/d5jEFj5EBswAAAAM/cable-row-seated-cable-row.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=wide+grip+cable+row+form" },
+
+  // ══ BICEPS ══
+  { name:"Cable Curl", type:"pull", muscle:"biceps",
+    equip:"Cable machine · low pulley · curl bar", emoji:"💪",
+    submuscles:[{n:"Short head (inner thickness)",p:55},{n:"Long head (outer peak)",p:35},{n:"Brachialis",p:10}],
+    tags:["short head","inner bicep","thickness","cable"],
+    tip:"<strong>Constant tension curl.</strong> Cable keeps load at peak contraction — better than dumbbells for failure reps. Squeeze hard at the top. Great for inner bicep thickness.",
+    gifUrl:"https://media.tenor.com/LyBQqiikJ4MAAAAM/cable-curl.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+bicep+curl+form" },
+
+  { name:"Dumbbell Curl", type:"pull", muscle:"biceps",
+    equip:"Free weights", emoji:"🏋️",
+    submuscles:[{n:"Short head (inner thickness)",p:50},{n:"Long head (outer peak)",p:40},{n:"Brachialis",p:10}],
+    tags:["short head","long head","both heads","mass"],
+    tip:"<strong>Classic mass builder.</strong> Supinate (rotate palm up) fully at the top for max squeeze. Slow 2–3 second negative on the way down. Hits both heads evenly.",
+    gifUrl:"https://media.tenor.com/MBGdMq3VtqkAAAAM/dumbbell-curl.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+bicep+curl+form" },
+
+  { name:"Hammer Curl", type:"pull", muscle:"biceps",
+    equip:"Free weights", emoji:"🔨",
+    submuscles:[{n:"Brachialis (pushes bicep up)",p:55},{n:"Long head (outer peak)",p:30},{n:"Brachioradialis",p:15}],
+    tags:["brachialis","long head","arm thickness","neutral grip"],
+    tip:"<strong>Brachialis builder.</strong> Neutral grip (palms facing each other). Works the brachialis under the bicep — developing this actually pushes the bicep peak higher. Key for arm size.",
+    gifUrl:"https://media.tenor.com/dqFSHB_bBz8AAAAM/hammer-curl.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=hammer+curl+form" },
+
+  { name:"Incline Dumbbell Curl", type:"pull", muscle:"biceps",
+    equip:"Free weights · incline bench", emoji:"📐",
+    submuscles:[{n:"Long head (outer peak)",p:70},{n:"Short head",p:20},{n:"Brachialis",p:10}],
+    tags:["long head","outer bicep","peak","stretch"],
+    tip:"<strong>Long head peak builder.</strong> Arms hang straight down behind torso — maximum long head stretch. This stretch under load is the primary driver of bicep peak development.",
+    gifUrl:"https://media.tenor.com/LlxSh9LcBr4AAAAM/incline-dumbbell-curl.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=incline+dumbbell+curl+form" },
+
+  { name:"Cable Concentration Curl", type:"pull", muscle:"biceps",
+    equip:"Single cable · low pulley", emoji:"🎯",
+    submuscles:[{n:"Short head (inner thickness)",p:65},{n:"Long head",p:25},{n:"Brachialis",p:10}],
+    tags:["short head","inner bicep","peak","isolation"],
+    tip:"<strong>Short head isolation.</strong> Eliminates all cheating — pure bicep contraction. Upper arm braced, curl across body. Best for building that inner bicep fullness and peak.",
+    gifUrl:"https://media.tenor.com/L1t0X95DCGAAAAAM/cable-concentration-curl.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+concentration+curl+form" },
+
+  { name:"Reverse Curl", type:"pull", muscle:"biceps",
+    equip:"Free weights or cable · overhand grip", emoji:"🔃",
+    submuscles:[{n:"Brachialis",p:50},{n:"Brachioradialis",p:35},{n:"Long head",p:15}],
+    tags:["brachialis","brachioradialis","forearm","reverse grip"],
+    tip:"<strong>Brachialis + forearm combo.</strong> Overhand grip curls build the brachialis and brachioradialis (outer forearm). Under-trained by most people. Thickens the entire arm.",
+    gifUrl:"https://media.tenor.com/dqFSHB_bBz8AAAAM/hammer-curl.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=reverse+curl+form" },
+
+  // ══ ABS ══
+  { name:"Decline Crunch", type:"pull", muscle:"abs",
+    equip:"Decline ab bench", emoji:"🪑",
+    submuscles:[{n:"Upper abs (rectus — upper)",p:70},{n:"Obliques",p:20},{n:"Hip flexors",p:10}],
+    tags:["upper abs","rectus abdominis","crunch"],
+    tip:"<strong>Upper abs primary.</strong> Arms crossed on chest or behind head — never pull neck. Curl up slowly, pause at top. Controlled negative. Zero momentum.",
+    gifUrl:"https://media.tenor.com/vPMZ47b1b6EAAAAM/decline-crunch.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=decline+crunch+form" },
+
+  { name:"Decline Leg Raise", type:"pull", muscle:"abs",
+    equip:"Decline ab bench", emoji:"🦵",
+    submuscles:[{n:"Lower abs (rectus — lower)",p:65},{n:"Hip flexors",p:25},{n:"Obliques",p:10}],
+    tags:["lower abs","rectus abdominis","leg raise"],
+    tip:"<strong>Lower abs focus.</strong> From flat position raise legs to 90°. Keep lower back pressed into bench throughout. Lower slowly — the negative is where the work is.",
+    gifUrl:"https://media.tenor.com/6pXgfQMRRRoAAAAM/leg-raise-decline.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=decline+leg+raise+form" },
+
+  { name:"Cable Crunch", type:"pull", muscle:"abs",
+    equip:"Cable machine · high pulley · rope", emoji:"⚡",
+    submuscles:[{n:"Upper abs",p:55},{n:"Lower abs",p:30},{n:"Obliques",p:15}],
+    tags:["upper abs","lower abs","weighted","full rectus"],
+    tip:"<strong>Weighted full ab work.</strong> Kneel, pull rope by rounding spine — elbows to knees. Don't pull with arms. The curl comes entirely from abs. Go heavy to build real thickness.",
+    gifUrl:"https://media.tenor.com/OZ2y1BbDXe4AAAAM/cable-crunch.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+crunch+form" },
+
+  { name:"Cable Woodchop", type:"pull", muscle:"abs",
+    equip:"Single cable · high pulley", emoji:"🪓",
+    submuscles:[{n:"Obliques",p:65},{n:"Transverse abdominis",p:20},{n:"Upper abs",p:15}],
+    tags:["obliques","rotational","anti-rotation","core"],
+    tip:"<strong>Oblique rotational work.</strong> Stand sideways to cable, pull diagonally from high to low across body. Rotate from the core, not just arms. Do both sides equally.",
+    gifUrl:"https://media.tenor.com/TuYHAiX4F6QAAAAM/cable-woodchop.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+woodchop+obliques+form" },
+
+  { name:"Hanging Knee Raise", type:"pull", muscle:"abs",
+    equip:"Smith machine bar or any bar", emoji:"🤸",
+    submuscles:[{n:"Lower abs",p:60},{n:"Hip flexors",p:25},{n:"Upper abs",p:15}],
+    tags:["lower abs","hip flexors","hanging","bodyweight"],
+    tip:"<strong>Lower abs + hip flexors.</strong> Hang from bar, bring knees to chest. Control the swing. Progress to straight-leg raises for more intensity. Brutal lower ab burn.",
+    gifUrl:"https://media.tenor.com/yULq_XTiQ6YAAAAM/hanging-knee-raise.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=hanging+knee+raise+form" },
+
+  // ══ QUADS ══
+  { name:"Smith Machine Squat", type:"legs", muscle:"quads",
+    equip:"Smith machine", emoji:"🏋️",
+    submuscles:[{n:"Rectus femoris",p:35},{n:"Vastus lateralis (outer quad)",p:30},{n:"Vastus medialis (VMO)",p:25},{n:"Glutes",p:10}],
+    tags:["all quads","rectus femoris","VMO","glutes","compound"],
+    tip:"<strong>Main quad builder.</strong> Feet slightly forward of bar. Go to parallel or below. Smith path keeps you stable — great for loading heavy and controlled depth.",
+    gifUrl:"https://media.tenor.com/xd1uFSGJuWEAAAAM/smith-machine-squat.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=smith+machine+squat+form" },
+
+  { name:"Smith Machine Front Squat", type:"legs", muscle:"quads",
+    equip:"Smith machine", emoji:"🔼",
+    submuscles:[{n:"Rectus femoris",p:40},{n:"VMO (teardrop)",p:35},{n:"Vastus lateralis",p:20},{n:"Glutes",p:5}],
+    tags:["rectus femoris","VMO","quad dominant","front squat"],
+    tip:"<strong>Quad dominant squat.</strong> More upright torso means more knee travel = more quad load. Targets rectus femoris and VMO especially hard. More challenging but superior for quads.",
+    gifUrl:"https://media.tenor.com/rlzEFBLJWAkAAAAM/front-squat-smith.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=smith+machine+front+squat+form" },
+
+  { name:"Bulgarian Split Squat", type:"legs", muscle:"quads",
+    equip:"Smith machine or dumbbells · bench", emoji:"🇧🇬",
+    submuscles:[{n:"Rectus femoris",p:35},{n:"VMO (teardrop)",p:30},{n:"Glutes",p:25},{n:"Hamstrings",p:10}],
+    tags:["VMO","rectus femoris","glutes","unilateral","split squat"],
+    tip:"<strong>Single-leg mass builder.</strong> Rear foot on bench. Front foot far forward so knee tracks over toe but not past it. Go deep. One of the best overall leg exercises.",
+    gifUrl:"https://media.tenor.com/qcRWoSG8aToAAAAM/bulgarian-split-squat.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=bulgarian+split+squat+form" },
+
+  { name:"Sissy Squat", type:"legs", muscle:"quads",
+    equip:"Hold cable stack for balance", emoji:"🦵",
+    submuscles:[{n:"Rectus femoris",p:55},{n:"VMO (teardrop)",p:35},{n:"Vastus lateralis",p:10}],
+    tags:["rectus femoris","VMO","teardrop","isolation","quad only"],
+    tip:"<strong>Pure quad isolation.</strong> Hold cable stack for balance. Knees travel forward over toes as you lean back. Lower and raise using ONLY quads. Extreme VMO and rectus burn.",
+    gifUrl:"https://media.tenor.com/JKWPCBIcnkgAAAAM/sissy-squat.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=sissy+squat+form" },
+
+  // ══ HAMSTRINGS ══
+  { name:"Smith Machine Romanian Deadlift", type:"legs", muscle:"hamstrings",
+    equip:"Smith machine", emoji:"🏗️",
+    submuscles:[{n:"Biceps femoris (long head)",p:45},{n:"Semitendinosus",p:30},{n:"Glutes",p:15},{n:"Semimembranosus",p:10}],
+    tags:["biceps femoris","hamstring long head","all hamstrings","glutes","hip hinge"],
+    tip:"<strong>Hamstring king.</strong> Bar slides down legs, hinge at hips until you feel a big hamstring stretch. Back stays flat. Drive hips forward to return. Feel the entire posterior chain.",
+    gifUrl:"https://media.tenor.com/Cy8GtdSrpEAAAAAM/romanian-deadlift-smith-machine.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=smith+machine+romanian+deadlift+form" },
+
+  { name:"Cable Pull-Through", type:"legs", muscle:"hamstrings",
+    equip:"Cable machine · low pulley · rope", emoji:"🔄",
+    submuscles:[{n:"Glutes",p:45},{n:"Biceps femoris",p:35},{n:"Semitendinosus",p:20}],
+    tags:["glutes","biceps femoris","hip hinge","glute-ham"],
+    tip:"<strong>Glute-ham hip hinge.</strong> Face away from cable, rope between legs. Hinge forward then explosively drive hips forward. Teaches the hip hinge pattern perfectly.",
+    gifUrl:"https://media.tenor.com/OhNcFJMuuXoAAAAM/cable-pull-through.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=cable+pull+through+form" },
+
+  { name:"Lying Dumbbell Leg Curl", type:"legs", muscle:"hamstrings",
+    equip:"Free weights · flat bench", emoji:"🦵",
+    submuscles:[{n:"Biceps femoris (short head)",p:40},{n:"Semitendinosus",p:35},{n:"Semimembranosus",p:25}],
+    tags:["biceps femoris","short head","knee flexion","hamstring curl"],
+    tip:"<strong>Knee flexion hamstring work.</strong> Lie face down, hold dumbbell between feet, curl up. Targets all three hamstring muscles through knee flexion — different stimulus than RDL.",
+    gifUrl:"https://media.tenor.com/LMBnGdoJMTsAAAAM/dumbbell-lying-leg-curl.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=dumbbell+lying+leg+curl+form" },
+
+  // ══ CALVES ══
+  { name:"Smith Machine Calf Raise", type:"legs", muscle:"calves",
+    equip:"Smith machine · plates under toes", emoji:"🦶",
+    submuscles:[{n:"Gastrocnemius (outer visible)",p:70},{n:"Soleus (underneath)",p:25},{n:"Tibialis",p:5}],
+    tags:["gastrocnemius","outer calf","standing","visible muscle"],
+    tip:"<strong>Gastrocnemius focus.</strong> Standing raises hit the outer gastrocnemius — the visible calf muscle. Full stretch at bottom, full squeeze at top. High reps to failure.",
+    gifUrl:"https://media.tenor.com/xWnzLHhO_HUAAAAM/smith-machine-calf-raise.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=smith+machine+calf+raise+form" },
+
+  { name:"Seated Dumbbell Calf Raise", type:"legs", muscle:"calves",
+    equip:"Free weights · seated on bench", emoji:"🪑",
+    submuscles:[{n:"Soleus (inner depth)",p:75},{n:"Gastrocnemius",p:20},{n:"Tibialis",p:5}],
+    tags:["soleus","inner calf","seated","depth"],
+    tip:"<strong>Soleus focus.</strong> Seated changes the angle — targets the deeper soleus muscle. Bent knee takes the gastrocnemius off, isolating the soleus entirely. Essential for full calf development.",
+    gifUrl:"https://media.tenor.com/r8VVbCt_5r4AAAAM/seated-calf-raise.gif",
+    vidUrl:"https://www.youtube.com/results?search_query=seated+calf+raise+form" },
+];
+
+// ─── FILTER CONFIG ────────────────────────────────────────────────────────────
+const TYPE_FILTERS = [
+  { key:'all', label:'All', cls:'on' },
+  { key:'push', label:'🔴 Push', cls:'on-push' },
+  { key:'pull', label:'🔵 Pull', cls:'on-pull' },
+  { key:'legs', label:'🟣 Legs', cls:'on-legs' },
+];
+
+const MUSCLE_FILTERS = [
+  'chest','shoulders','triceps','back','biceps','abs','quads','hamstrings','calves'
+];
+
+// Collect all unique sub-muscle tags from data
+const allSubTags = [...new Set(EXERCISES.flatMap(e => e.tags))].sort();
+
+// Selected filters state
+let activeType = 'all';
+let activeMuscles = new Set();
+let activeSubTags = new Set();
+
+// Build type tabs
+const rowType = document.getElementById('row-type');
+TYPE_FILTERS.forEach(f => {
+  const btn = document.createElement('button');
+  btn.className = 'ftab' + (f.key==='all' ? ' on' : '');
+  btn.textContent = f.label;
+  btn.dataset.key = f.key;
+  btn.dataset.cls = f.cls;
+  btn.onclick = () => {
+    activeType = f.key;
+    document.querySelectorAll('#row-type .ftab').forEach(b => b.className='ftab');
+    btn.className = `ftab ${f.cls}`;
+    applyFilters();
+  };
+  rowType.appendChild(btn);
+});
+
+// Build muscle tabs
+const rowMuscle = document.getElementById('row-muscle');
+MUSCLE_FILTERS.forEach(m => {
+  const btn = document.createElement('button');
+  btn.className = 'ftab';
+  btn.textContent = m.charAt(0).toUpperCase()+m.slice(1);
+  btn.dataset.muscle = m;
+  btn.onclick = () => {
+    if(activeMuscles.has(m)) { activeMuscles.delete(m); btn.className='ftab'; }
+    else { activeMuscles.add(m); btn.className='ftab on'; }
+    applyFilters();
+  };
+  rowMuscle.appendChild(btn);
+});
+
+// Build sub-tag tabs dynamically
+const rowSub = document.getElementById('row-sub');
+allSubTags.forEach(tag => {
+  const btn = document.createElement('button');
+  btn.className = 'ftab';
+  btn.textContent = tag;
+  btn.dataset.tag = tag;
+  btn.onclick = () => {
+    if(activeSubTags.has(tag)) { activeSubTags.delete(tag); btn.className='ftab'; }
+    else { activeSubTags.add(tag); btn.className='ftab on'; }
+    applyFilters();
+  };
+  rowSub.appendChild(btn);
+});
+
+// ─── BUILD EXERCISE LIST ──────────────────────────────────────────────────────
+const MUSCLE_ORDER = ['chest','shoulders','triceps','back','biceps','abs','quads','hamstrings','calves'];
+const MUSCLE_LABELS = { chest:'Chest', shoulders:'Shoulders', triceps:'Triceps', back:'Back', biceps:'Biceps', abs:'Abs', quads:'Quads', hamstrings:'Hamstrings', calves:'Calves' };
+
+const container = document.getElementById('exerciseList');
+
+MUSCLE_ORDER.forEach(muscle => {
+  const exes = EXERCISES.filter(e => e.muscle === muscle);
+  if(!exes.length) return;
+
+  const sec = document.createElement('div');
+  sec.className = 'section-label'; sec.dataset.muscle = muscle;
+  sec.textContent = MUSCLE_LABELS[muscle];
+  container.appendChild(sec);
+
+  const cardsDiv = document.createElement('div');
+  cardsDiv.className = 'cards'; cardsDiv.dataset.muscle = muscle;
+
+  exes.forEach((ex, idx) => {
+    const uid = `${muscle}-${idx}`;
+    const card = document.createElement('div');
+    card.className = 'ex-card';
+    card.dataset.type = ex.type;
+    card.dataset.muscle = ex.muscle;
+    card.dataset.name = ex.name.toLowerCase();
+    card.dataset.tags = ex.tags.join('|');
+    card.id = 'card-' + uid;
+    card._gifUrl = ex.gifUrl;
+
+    // Primary tag (first), secondary (rest)
+    const tagHTML = ex.submuscles.map((s,i) =>
+      `<span class="ex-tag ${i===0?'tag-primary':'tag-secondary'}">${s.n.split('(')[0].trim()}</span>`
+    ).join('');
+
+    // Muscle breakdown bars
+    const barsHTML = ex.submuscles.map(s => `
+      <div class="mb-row">
+        <div class="mb-label">${s.n}</div>
+        <div class="mb-bar-bg"><div class="mb-bar-fill" style="width:${s.p}%"></div></div>
+        <div class="mb-pct">${s.p}%</div>
+      </div>`).join('');
+
+    card.innerHTML = `
+      <div class="ex-main" onclick="toggleCard('${uid}')">
+        <div class="ex-thumb">${ex.emoji}</div>
+        <div class="ex-info">
+          <div class="ex-name">${ex.name}</div>
+          <div class="ex-equip">📍 ${ex.equip}</div>
+          <div class="ex-tags">${tagHTML}</div>
+        </div>
+        <div class="ex-chevron">›</div>
+      </div>
+      <div class="ex-detail" id="detail-${uid}">
+        <div class="ex-detail-inner">
+          <div class="detail-gif" id="gif-${uid}">
+            <div class="gif-placeholder"><span class="big">🎬</span>Loading demo…</div>
+          </div>
+          <a class="gif-link" href="${ex.vidUrl}" target="_blank" rel="noopener">▶ Watch form tutorial on YouTube ↗</a>
+          <div class="detail-sets">
+            <div class="detail-pill"><div class="dpnum">2–3</div><div class="dplbl">Sets</div></div>
+            <div class="detail-pill"><div class="dpnum" style="font-size:0.95rem;padding-top:5px">RTF</div><div class="dplbl">Reps</div></div>
+          </div>
+          <div class="muscle-breakdown">
+            <div class="mb-title">Muscles Targeted</div>
+            <div class="mb-bars">${barsHTML}</div>
+          </div>
+          <div class="detail-tip">${ex.tip}</div>
+          <div class="done-row">
+            <span class="done-label">Mark as done</span>
+            <button class="done-toggle" id="tog-${uid}" onclick="toggleDone('${uid}')"></button>
+          </div>
+        </div>
+      </div>`;
+
+    cardsDiv.appendChild(card);
+  });
+  container.appendChild(cardsDiv);
+});
+
+// ─── ACTIVE PILLS ────────────────────────────────────────────────────────────
+function renderPills() {
+  const box = document.getElementById('activePills');
+  box.innerHTML = '';
+  activeMuscles.forEach(m => {
+    const p = document.createElement('div'); p.className = 'af-pill';
+    p.innerHTML = `${m.charAt(0).toUpperCase()+m.slice(1)} <span class="pill-x">✕</span>`;
+    p.onclick = () => {
+      activeMuscles.delete(m);
+      const btn = document.querySelector(`[data-muscle="${m}"]`);
+      if(btn) btn.className = 'ftab';
+      applyFilters();
+    };
+    box.appendChild(p);
+  });
+  activeSubTags.forEach(tag => {
+    const p = document.createElement('div'); p.className = 'af-pill';
+    p.innerHTML = `${tag} <span class="pill-x">✕</span>`;
+    p.onclick = () => {
+      activeSubTags.delete(tag);
+      const btn = document.querySelector(`[data-tag="${tag}"]`);
+      if(btn) btn.className = 'ftab';
+      applyFilters();
+    };
+    box.appendChild(p);
+  });
+}
+
+// ─── APPLY FILTERS ───────────────────────────────────────────────────────────
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  let anyVisible = false;
+
+  document.querySelectorAll('.ex-card').forEach(card => {
+    const typeOk = activeType === 'all' || card.dataset.type === activeType;
+    const muscleOk = activeMuscles.size === 0 || activeMuscles.has(card.dataset.muscle);
+    const cardTags = card.dataset.tags.split('|');
+    const tagOk = activeSubTags.size === 0 || [...activeSubTags].every(t => cardTags.includes(t));
+    const searchOk = !search || card.dataset.name.includes(search) || card.dataset.tags.includes(search);
+    const show = typeOk && muscleOk && tagOk && searchOk;
+    card.classList.toggle('hidden', !show);
+    if(show) anyVisible = true;
+  });
+
+  document.querySelectorAll('.section-label').forEach(sec => {
+    const m = sec.dataset.muscle;
+    const cards = document.querySelector(`.cards[data-muscle="${m}"]`);
+    const hasVis = cards && [...cards.querySelectorAll('.ex-card')].some(c => !c.classList.contains('hidden'));
+    sec.style.display = hasVis ? '' : 'none';
+    if(cards) cards.style.display = hasVis ? '' : 'none';
+  });
+
+  document.getElementById('noResults').classList.toggle('show', !anyVisible);
+  renderPills();
+}
+
+// ─── CARD TOGGLE ─────────────────────────────────────────────────────────────
+function toggleCard(uid) {
+  const card = document.getElementById('card-' + uid);
+  const isOpen = card.classList.contains('open');
+  document.querySelectorAll('.ex-card.open').forEach(c => c.classList.remove('open'));
+  if(!isOpen) {
+    card.classList.add('open');
+    const gifBox = document.getElementById('gif-' + uid);
+    if(!gifBox.querySelector('img') && card._gifUrl) {
+      const img = document.createElement('img');
+      img.src = card._gifUrl;
+      img.alt = "Exercise demo";
+      img.onerror = () => { gifBox.innerHTML = '<div class="gif-placeholder"><span class="big">📺</span>Demo unavailable — use YouTube link below</div>'; };
+      gifBox.innerHTML = '';
+      gifBox.appendChild(img);
+    }
+    setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'nearest' }), 60);
+  }
+}
+
+function toggleDone(uid) {
+  const card = document.getElementById('card-' + uid);
+  const tog = document.getElementById('tog-' + uid);
+  card.classList.toggle('done');
+  tog.classList.toggle('on');
+}
+</script>
+</body>
+</html>
